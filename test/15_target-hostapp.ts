@@ -179,23 +179,6 @@ export default () => {
 				],
 			] as const;
 
-			versionsToTest.forEach(
-				([osTypeTitlePart, osVersionVariantParams, getHostAppReleaseId]) => {
-					it(`should provision with a linked ${osTypeTitlePart} hostapp release (using state PATCH)`, async () => {
-						const testDevice = await fakeDevice.provisionDevice(
-							admin,
-							applicationId,
-						);
-						await testDevice.patchStateV2({
-							local: osVersionVariantParams,
-						});
-						await expectResourceToMatch(pineUser, 'device', testDevice.id, {
-							should_be_operated_by__release: { __id: getHostAppReleaseId() },
-						});
-					});
-				},
-			);
-
 			(
 				[
 					[
@@ -240,6 +223,31 @@ export default () => {
 									...restDevicePostBody,
 								})
 								.expect(201);
+						},
+					],
+					[
+						'device POST & state PATCH',
+						async ({
+							belongs_to__application,
+							device_type,
+							...restDevicePostBody
+						}: AnyObject) => {
+							const testDevice = await fakeDevice.provisionDevice(
+								admin,
+								applicationId,
+							);
+							await testDevice.patchStateV2({
+								local: restDevicePostBody,
+							});
+							return await pineUser
+								.get({
+									resource: 'device',
+									id: testDevice.id,
+									options: {
+										$select: 'id',
+									},
+								})
+								.expect(200);
 						},
 					],
 				] as const
