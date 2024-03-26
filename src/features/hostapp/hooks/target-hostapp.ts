@@ -221,7 +221,7 @@ async function getOSReleaseResource(
 						semver_patch: parsedOsVersion.patch,
 						semver_prerelease: parsedOsVersion.prerelease.join('.'),
 						semver_build: parsedOsVersion.build.join('.'),
-						revision: getRevisionFromSemver(parsedOsVersion),
+						revision: getRevisionFromSemver(parsedOsVersion) ?? 0,
 						// The OS release has to either have a matching variant,
 						// or have no variant (when it's an invariant/unified release).
 						$or: [{ variant: osVariant }, { variant: '' }],
@@ -303,7 +303,7 @@ async function getOSReleaseResource(
 	return release;
 }
 
-function getRevisionFromSemver(parsedOsVersion: SemVer) {
+function getRevisionFromSemver(parsedOsVersion: SemVer): number | undefined {
 	const revisionRegex = /^rev(\d+)$/;
 	for (const buildPart of parsedOsVersion.build) {
 		const match = buildPart.match(revisionRegex)?.[1];
@@ -311,7 +311,7 @@ function getRevisionFromSemver(parsedOsVersion: SemVer) {
 			return parseInt(match, 10);
 		}
 	}
-	return 0;
+	return;
 }
 
 function normalizeVariantToLongForm(variant: string) {
@@ -417,7 +417,7 @@ async function checkHostappReleaseUpgrades(
 
 	if (newHostappVersion == null) {
 		throw new BadRequestError(
-			`Could not find the version of hostapp release with this ID ${newHostappReleaseId}`,
+			`Could not find the version for the hostapp release with ID: ${newHostappReleaseId}`,
 		);
 	}
 

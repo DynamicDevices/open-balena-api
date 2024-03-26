@@ -20,9 +20,11 @@ export default () => {
 			let device1: fakeDevice.Device;
 			let device2: fakeDevice.Device;
 			let noMatchDevice: fakeDevice.Device;
-			let prodNucHostappReleaseId: number;
-			let prodTagAndSemverNucHostappReleaseId: number;
-			let prodSemverOnlyNucHostappReleaseId: number;
+			/* eslint-disable @typescript-eslint/naming-convention */
+			let nuc2_50_0_rev1prodId: number;
+			let nuc2_51_0_rev1prodTagAndSemverId: number;
+			let nuc2_51_0_rev2prodSemverOnlyId: number;
+			/* eslint-enable @typescript-eslint/naming-convention */
 			let rpi3hostAppReleaseId: number;
 			let failedIntelNucHostAppReleaseId: number;
 			let esrTagOnlyHostAppReleaseId: number;
@@ -48,9 +50,9 @@ export default () => {
 				device1 = await fakeDevice.provisionDevice(admin, applicationId);
 				device2 = await fakeDevice.provisionDevice(admin, applicationId);
 				noMatchDevice = await fakeDevice.provisionDevice(admin, applicationId);
-				prodNucHostappReleaseId = fx.releases.release2_50_0_rev1.id;
-				prodTagAndSemverNucHostappReleaseId = fx.releases.release2_51_0_rev1.id;
-				prodSemverOnlyNucHostappReleaseId = fx.releases.release2_51_0_rev2.id;
+				nuc2_50_0_rev1prodId = fx.releases.release2_50_0_rev1.id;
+				nuc2_51_0_rev1prodTagAndSemverId = fx.releases.release2_51_0_rev1.id;
+				nuc2_51_0_rev2prodSemverOnlyId = fx.releases.release2_51_0_rev2.id;
 				rpi3hostAppReleaseId = fx.releases.rpi3release.id;
 				failedIntelNucHostAppReleaseId = fx.releases.releaseIntelNucFailed.id;
 				esrTagOnlyHostAppReleaseId = fx.releases.releaseNucEsrTagOnly.id;
@@ -78,7 +80,7 @@ export default () => {
 						os_version: 'balenaOS 2.50.0+rev1',
 						os_variant: 'prod',
 					},
-					() => prodNucHostappReleaseId,
+					() => nuc2_50_0_rev1prodId,
 				],
 				[
 					'prod release_tag & semver',
@@ -86,7 +88,7 @@ export default () => {
 						os_version: 'balenaOS 2.51.0+rev1',
 						os_variant: 'prod',
 					},
-					() => prodTagAndSemverNucHostappReleaseId,
+					() => nuc2_51_0_rev1prodTagAndSemverId,
 				],
 				[
 					'prod semver only',
@@ -94,7 +96,7 @@ export default () => {
 						os_version: 'balenaOS 2.51.0+rev2',
 						os_variant: 'prod',
 					},
-					() => prodSemverOnlyNucHostappReleaseId,
+					() => nuc2_51_0_rev2prodSemverOnlyId,
 				],
 				[
 					'unified release_tag & semver',
@@ -266,6 +268,11 @@ export default () => {
 							});
 
 							it(`should create a service install for the linked hostapp`, async () => {
+								const targetHostApp = isEsr ? nucEsrHostApp : nucHostApp;
+								const targetService =
+									fx.services[
+										isEsr ? 'intel-nuc-esr_service1' : 'intel-nuc_service1'
+									];
 								const { body: serviceInstalls } = await pineUser
 									.get({
 										resource: 'service_install',
@@ -282,9 +289,7 @@ export default () => {
 														$alias: 'is',
 														$expr: {
 															is: {
-																application: !isEsr
-																	? nucHostApp.id
-																	: nucEsrHostApp.id,
+																application: targetHostApp.id,
 															},
 														},
 													},
@@ -295,12 +300,7 @@ export default () => {
 									.expect(200);
 								expect(serviceInstalls).to.have.lengthOf(1);
 								const [service] = serviceInstalls[0].installs__service;
-								expect(service).to.have.property(
-									'id',
-									fx.services[
-										!isEsr ? 'intel-nuc_service1' : 'intel-nuc-esr_service1'
-									].id,
-								);
+								expect(service).to.have.property('id', targetService.id);
 								expect(service).to.have.property('service_name', 'main');
 							});
 						});
@@ -317,7 +317,7 @@ export default () => {
 					},
 				});
 				await expectResourceToMatch(pineUser, 'device', device1.id, {
-					should_be_operated_by__release: { __id: prodNucHostappReleaseId },
+					should_be_operated_by__release: { __id: nuc2_50_0_rev1prodId },
 				});
 
 				await supertest(admin)
@@ -347,12 +347,12 @@ export default () => {
 					[
 						'semver & release_tag',
 						'balenaOS 2.51.0+rev1',
-						() => prodTagAndSemverNucHostappReleaseId,
+						() => nuc2_51_0_rev1prodTagAndSemverId,
 					],
 					[
 						'semver only',
 						'balenaOS 2.51.0+rev2',
-						() => prodSemverOnlyNucHostappReleaseId,
+						() => nuc2_51_0_rev2prodSemverOnlyId,
 					],
 				] as const
 			).forEach(([titlePart, osVersion, getUpgradeReleaseId]) => {
@@ -361,35 +361,32 @@ export default () => {
 						.patch(`/${version}/device(${device1.id})`)
 						.send({ should_be_operated_by__release: getUpgradeReleaseId() })
 						.expect(200);
-					const { body } = await supertest(admin).get(
-						`/${version}/device(${device1.id})?$select=should_be_operated_by__release`,
-					);
-					expect(body.d[0]).to.not.be.undefined;
-					expect(body.d[0]['should_be_operated_by__release'].__id).to.equal(
-						getUpgradeReleaseId(),
-					);
+					await expectResourceToMatch(pineUser, 'device', device1.id, {
+						should_be_operated_by__release: { __id: getUpgradeReleaseId() },
+					});
 				});
 
 				it(`should fail to downgrade (when on a release with ${titlePart})`, async () => {
 					await supertest(admin)
 						.patch(`/${version}/device(${device1.id})`)
-						.send({ should_be_operated_by__release: prodNucHostappReleaseId })
+						.send({ should_be_operated_by__release: nuc2_50_0_rev1prodId })
 						.expect(
 							400,
 							'"Attempt to downgrade hostapp, which is not allowed"',
 						);
 				});
 
-				it(`should remove the target preprovisioned hostapp and link with the reported upgraded ${titlePart} release, if it is an implied downgrade`, async () => {
-					// if a device is preprovisioned and pinned to a release
-					// less than the version it initially checks in with, make sure the downgrade doesn't persist
+				it(`should move the device from older preprovisioned OS release, to the upgraded release reported in state patch (using ${titlePart})`, async () => {
+					// if a device is preprovisioned and pinned to a release with a semver
+					// less than the version it initially checks in with, we need to clear
+					// the old hostApp release, otherwise the model would imply a scheduled OS downgrade.
 					const preprovisionedDevice = await fakeDevice.provisionDevice(
 						admin,
 						applicationId,
 					);
 					await supertest(admin)
 						.patch(`/${version}/device(${preprovisionedDevice.id})`)
-						.send({ should_be_operated_by__release: prodNucHostappReleaseId })
+						.send({ should_be_operated_by__release: nuc2_50_0_rev1prodId })
 						.expect(200);
 
 					// run the actual test
@@ -417,13 +414,9 @@ export default () => {
 					.patch(`/${version}/device(${device1.id})`)
 					.send({ should_be_operated_by__release: esrTagOnlyHostAppReleaseId })
 					.expect(200);
-				const { body } = await supertest(admin).get(
-					`/${version}/device(${device1.id})?$select=should_be_operated_by__release`,
-				);
-				expect(body.d[0]).to.not.be.undefined;
-				expect(body.d[0]['should_be_operated_by__release'].__id).to.equal(
-					esrTagOnlyHostAppReleaseId,
-				);
+				await expectResourceToMatch(pineUser, 'device', device1.id, {
+					should_be_operated_by__release: { __id: esrTagOnlyHostAppReleaseId },
+				});
 			});
 
 			it('should still provision with a nonexistent hostapp', async () => {
@@ -494,7 +487,7 @@ export default () => {
 						local: {
 							supervisor_version: supervisorVersion,
 							os_version: newOsVersion,
-							os_variant: 'production',
+							os_variant: 'prod',
 						},
 					});
 					// after provisioning to our invalidated release, let's make sure we're not blocked
@@ -506,7 +499,7 @@ export default () => {
 						{
 							supervisor_version: supervisorVersion,
 							os_version: newOsVersion,
-							os_variant: 'production',
+							os_variant: 'prod',
 							// Atm the should_be_operated_by__release is only updated when the device provisions.
 							// We might change this during the scheduled or tri-app HUP.
 							should_be_operated_by__release: {
@@ -525,15 +518,15 @@ export default () => {
 					},
 				});
 				await expectResourceToMatch(pineUser, 'device', device2.id, {
-					should_be_operated_by__release: { __id: prodNucHostappReleaseId },
+					should_be_operated_by__release: { __id: nuc2_50_0_rev1prodId },
 				});
 
 				await supertest(admin)
-					.patch(`/${version}/release(${prodNucHostappReleaseId})`)
+					.patch(`/${version}/release(${nuc2_50_0_rev1prodId})`)
 					.send({ is_invalidated: true })
 					.expect(200);
 				const { body } = await supertest(admin)
-					.get(`/${version}/release(${prodNucHostappReleaseId})`)
+					.get(`/${version}/release(${nuc2_50_0_rev1prodId})`)
 					.expect(200);
 				expect(body.d[0].is_invalidated).to.be.true;
 			});
