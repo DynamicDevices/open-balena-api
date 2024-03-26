@@ -221,10 +221,14 @@ async function getOSReleaseResource(
 						semver_patch: parsedOsVersion.patch,
 						semver_prerelease: parsedOsVersion.prerelease.join('.'),
 						semver_build: parsedOsVersion.build.join('.'),
-						revision: getRevisionFromSemver(parsedOsVersion) ?? 0,
+						$or: [
+							{ revision: getRevisionFromSemver(parsedOsVersion) ?? 0 },
+							// Matching with NULL as well, allows provisioning devices to draft OS releases
+							{ revision: null },
+						],
 						// The OS release has to either have a matching variant,
 						// or have no variant (when it's an invariant/unified release).
-						$or: [{ variant: osVariant }, { variant: '' }],
+						variant: { $in: [osVariant, ''] },
 					},
 					{
 						// We still need to be filtering hostApp releases based on the deprecated release_tags,

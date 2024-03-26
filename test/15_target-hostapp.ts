@@ -24,6 +24,9 @@ export default () => {
 			let nuc2_50_0_rev1prodId: number;
 			let nuc2_51_0_rev1prodTagAndSemverId: number;
 			let nuc2_51_0_rev2prodSemverOnlyId: number;
+			let nucDraft2_90_0TagOnlyId: number;
+			let nucDraft2_90_1SemverOnlyId: number;
+			let nucDraft2_90_1rev1SemverOnlyId: number;
 			/* eslint-enable @typescript-eslint/naming-convention */
 			let rpi3hostAppReleaseId: number;
 			let failedIntelNucHostAppReleaseId: number;
@@ -67,6 +70,10 @@ export default () => {
 					fx.releases.unified2_88_5SemverOnlyRelease.id;
 				unifiedSemverRevHostAppReleaseId =
 					fx.releases.unified2_88_5_rev1SemverOnlyRelease.id;
+				nucDraft2_90_0TagOnlyId = fx.releases.nucDraft2_90_0TagOnly.id;
+				nucDraft2_90_1SemverOnlyId = fx.releases.nucDraft2_90_1SemverOnly.id;
+				nucDraft2_90_1rev1SemverOnlyId =
+					fx.releases.nucDraft2_90_1rev1SemverOnly.id;
 			});
 
 			after(async () => {
@@ -146,11 +153,35 @@ export default () => {
 					},
 					() => esrSemverOnlyHostAppReleaseId,
 				],
+				[
+					'draft release_tag only',
+					{
+						os_version: 'balenaOS 2.90.0',
+						os_variant: 'prod',
+					},
+					() => nucDraft2_90_0TagOnlyId,
+				],
+				[
+					'draft semver only',
+					{
+						os_version: 'balenaOS 2.90.1',
+						os_variant: 'prod',
+					},
+					() => nucDraft2_90_1SemverOnlyId,
+				],
+				[
+					'draft semver only',
+					{
+						os_version: 'balenaOS 2.90.1+rev1',
+						os_variant: 'prod',
+					},
+					() => nucDraft2_90_1rev1SemverOnlyId,
+				],
 			] as const;
 
 			versionsToTest.forEach(
 				([osTypeTitlePart, osVersionVariantParams, getHostAppReleaseId]) => {
-					it(`should provision with a linked ${osTypeTitlePart} hostapp (using state PATCH)`, async () => {
+					it(`should provision with a linked ${osTypeTitlePart} hostapp release (using state PATCH)`, async () => {
 						const testDevice = await fakeDevice.provisionDevice(
 							admin,
 							applicationId,

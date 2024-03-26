@@ -96,5 +96,26 @@
 		"releases": [ "unified2_88_5_rev1SemverOnlyRelease" ],
 		"project_type": "Dockerfile.template",
 		"status": "success"
+	},
+	"nucDraft2_90_0TagOnlyImage": {
+		"user": "admin",
+		"service": "intel-nuc_service1",
+		"releases": [ "nucDraft2_90_0TagOnly" ],
+		"project_type": "Dockerfile.template",
+		"status": "success"
+	},
+	"nucDraft2_90_1SemverOnlyImage": {
+		"user": "admin",
+		"service": "intel-nuc_service1",
+		"releases": [ "nucDraft2_90_1SemverOnly" ],
+		"project_type": "Dockerfile.template",
+		"status": "success"
+	},
+	"nucDraft2_90_1rev1SemverOnlyImage": {
+		"user": "admin",
+		"service": "intel-nuc_service1",
+		"releases": [ "nucDraft2_90_1rev1SemverOnly" ],
+		"project_type": "Dockerfile.template",
+		"status": "success"
 	}
 }

@@ -106,5 +106,11 @@
 		"release": "unified2_88_4Release",
 		"tag_key": "version",
 		"value": "2.88.4"
+	},
+	"nucDraft2_90_0TagOnly-version": {
+		"user": "admin",
+		"release": "nucDraft2_90_0TagOnly",
+		"tag_key": "version",
+		"value": "2.90.0"
 	}
 }
